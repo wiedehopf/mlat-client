@@ -1,0 +1,11 @@
+Metadata-Version: 2.4
+Name: MlatClient
+Version: 0.4.2
+Summary: Multilateration client package
+Author: Matthias Wirth
+Author-email: matthias.wirth@gmail.com
+License-File: COPYING
+Dynamic: author
+Dynamic: author-email
+Dynamic: license-file
+Dynamic: summary
