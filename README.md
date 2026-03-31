@@ -53,7 +53,9 @@ If you have one of these, you should ask FR24 to fix this.
 
 ## License
 
-Copyright 2015, [Oliver Jowett](mailto:oliver@mutability.co.uk).
+Original work copyright 2015, [Oliver Jowett](mailto:oliver@mutability.co.uk).
+
+Fork maintained by [wiedehopf (Matthias Wirth)](https://github.com/wiedehopf), copyright 2019-2025.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
