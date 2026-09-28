@@ -39,22 +39,26 @@ def main():
     location = parser.add_argument_group('Receiver location')
     location.add_argument('--lat',
                           type=options.latitude,
-                          help="Latitude of the receiver, in decimal degrees. Required.",
-                          required=True)
+                          help="Latitude of the receiver, in decimal degrees. Required unless --use-gpsd is set.",
+                          required=False)
     location.add_argument('--lon',
                           type=options.longitude,
-                          help="Longitude of the receiver, in decimal degrees. Required.",
-                          required=True)
+                          help="Longitude of the receiver, in decimal degrees. Required unless --use-gpsd is set.",
+                          required=False)
     location.add_argument('--alt',
                           type=options.altitude,
                           help="""
-Altitude of the receiver (height above ellipsoid).  Required. Defaults to metres, but units may
+Altitude of the receiver (height above ellipsoid). Required unless --use-gpsd is set. Defaults to metres, but units may
 specified with a 'ft' or 'm' suffix.""",
-                          required=True)
+                          required=False)
     location.add_argument('--privacy',
                           help="""
 Sets the privacy flag for this receiver. Currently, this removes the receiver
 location pin from the coverage maps.""",
+                          action='store_true',
+                          default=False)
+    location.add_argument('--use-gpsd',
+                          help="Use GPSD to get receiver location (lat/lon/alt). Overrides --lat, --lon, --alt.",
                           action='store_true',
                           default=False)
 
@@ -120,8 +124,37 @@ location pin from the coverage maps.""",
 
     util.suppress_log_timestamps = not args.log_timestamps
 
-    if abs(args.lat) < 0.1 and abs(args.lon) < 0.1:
-        util.log("<3>Latitude / Longitude not set, please configure and reboot")
+    # If --use-gpsd is set, get lat/lon/alt from gpsd
+    if args.use_gpsd:
+        try:
+            import gps
+        except ImportError:
+            util.log("<3>gps library not found. Please install it with 'pip install gps'.")
+            raise SystemExit(1)
+        session = gps.gps(mode=gps.WATCH_ENABLE)
+        util.log("Attempting to get location from GPSD...")
+        # Wait for a TPV report with lat/lon/alt
+        lat = lon = alt = None
+        for _ in range(20):  # Try for up to ~10 seconds
+            report = session.next()
+            if report['class'] == 'TPV':
+                lat = getattr(report, 'lat', None)
+                lon = getattr(report, 'lon', None)
+                alt = getattr(report, 'alt', None)
+                if lat is not None and lon is not None and alt is not None:
+                    break
+            time.sleep(0.5)
+        if lat is None or lon is None or alt is None:
+            util.log("<3>Could not get valid lat/lon/alt from GPSD.")
+            raise SystemExit(1)
+        util.log("Successfully obtained location from GPSD. Lat: {lat}, Lon: {lon}, Alt: {alt}m", lat=lat, lon=lon, alt=alt)
+        args.lat = lat
+        args.lon = lon
+        args.alt = str(alt)
+
+    # Check that lat/lon/alt are set
+    if args.lat is None or args.lon is None or args.alt is None:
+        util.log("<3>Latitude / Longitude / Altitude not set, please configure and reboot")
         time.sleep(3600)
         raise SystemExit
 
